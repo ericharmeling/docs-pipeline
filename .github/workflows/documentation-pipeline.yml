@@ -1,0 +1,16 @@
+name: Documentation Pipeline
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual triggers
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - 'utils/**'
+
+jobs:
+  run-pipeline:
+    uses: ./.github/workflows/reusable-documentation-pipeline.yml 

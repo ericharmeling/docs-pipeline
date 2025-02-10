@@ -1,0 +1,111 @@
+name: Documentation Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run Documentation Pipeline
+      id: build
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      run: |
+        python -m build.build
+        
+    # Only set up Jekyll if validation and tests passed
+    - name: Set up Ruby and Jekyll
+      if: success()
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+    
+    - name: Install Jekyll
+      if: success()
+      run: gem install jekyll bundler
+    
+    - name: Build Site
+      if: success()
+      run: jekyll build
+    
+    # Deploy only if everything passed and we're on main branch
+    - name: Deploy to GitHub Pages
+      if: success() && github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site
+    
+    - name: Upload Build Reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-reports
+        path: |
+          docs/reports/validation_report.md
+          docs/reports/test_report.md
+          docs/reports/*.html
+
+    - name: Comment PR with Test Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const metrics = JSON.parse(fs.readFileSync('docs/reports/test_metrics.json', 'utf8'));
+          
+          const summary = `## Test Generation Results
+          - Total Methods: ${metrics.summary.total_methods}
+          - Passed: ${metrics.summary.passed}
+          - Failed: ${metrics.summary.failed}
+          - Average Coverage: ${metrics.summary.average_coverage.toFixed(2)}%
+          
+          [Full Report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
+          
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+
+    - name: Create Issue on Validation Failure
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '⚠️ Documentation Validation Failed',
+            body: |
+              The documentation pipeline has failed during the scheduled run.
+              
+              Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.
+              
+              This might indicate:
+              - Technical inaccuracies in documentation
+              - Failed validation checks
+              - Build process errors
+              
+              Please investigate and update the documentation as needed.
+          }); 

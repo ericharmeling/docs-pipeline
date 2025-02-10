@@ -4,9 +4,9 @@
 
 This document details the architecture and implementation of a documentation CI/CD pipeline that uses LLMs to augment the documentation generation and validation process.
 
-This pipeline is designed specifically to generate, validate, and publish developer documentation for Anthropic's Claude SDK for Python. The pipeline is designed to be used in a GitHub repository dedicated to documentation, and is triggered by a push to the repository.
+This pipeline is designed specifically to generate, validate, and publish developer documentation for the [Anthropic Python Library](https://github.com/anthropics/anthropic-sdk-python). The pipeline is designed to be used in a GitHub repository dedicated to documentation, and is triggered by a push to the repository.
 
-**Note:** A pipeline for publishing documentation for Anthropic's Claude SDKs already exists. This pipeline architecture is not intended to replace that pipeline, but rather propose an alternative approach based on industry-standard practices.
+**Note:** A pipeline for publishing documentation for Anthropic's Client APIs already exists. This pipeline architecture is not intended to replace that pipeline, but rather propose an alternative approach based on industry-standard practices.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ The pipeline is implemented using a combination of python scripts and object-ori
 
 The GitHub workflow files that control the pipeline are in the `/.github/workflows` directory.
 
-The main build script that runs the pipeline is defined in the `/build/build.py` file. This script extracts the API source code for the SDK from its repository and constructs object-oriented representations of the pipeline components. It then converts each API into a format that can be used to train the LLM for generation and validation.
+The main build script that runs the pipeline is defined in the `/build/build.py` file. This script extracts the API source code for the library from its repository and constructs object-oriented representations of the pipeline components. It then converts each API into a format that can be used to train the LLM for generation and validation.
 
 ### Documentation Generation
 
@@ -40,7 +40,7 @@ documentation is created by humans, increasingly with the help of LLMs.
 
 Some documentation, specifically API reference documentation, can be generated directly and deterministically from source code. This practice guarantees that the documentation is accurate, and in a format that most developers expect. This pipeline leverages third-party tools to generate the API reference documentation from the source code, a standard practice in software documentation.
 
-Example code, one of the most powerful features of good developer documentation, has historically been manually created. If the engineers who write the APIs for a given SDK write examples in the comments of the source code, you can use a third-party, static API generator to use those examples in the API reference documentation, along with class, method, and parameter descriptions. Otherwise, example code is manually created by engineers and technical writers and later published to developer documentation websites.
+Example code, one of the most powerful features of good developer documentation, has historically been manually created. If the engineers who write the APIs for a given library write examples in the comments of the source code, you can use a third-party, static API generator to use those examples in the API reference documentation, along with class, method, and parameter descriptions. Otherwise, example code is manually created by engineers and technical writers and later published to developer documentation websites.
 
 Using LLMs, you can also generate code examples that are tailored to each individual API, in addition to generating unit tests for the code examples. Although not necessarily deterministic, this practice guarantees that the code examples are accurate, relevant, and up-to-date. It also saves engineers and technical writers a lot of time, as they don't have to write the code examples and unit tests from scratch.
 
@@ -52,7 +52,7 @@ Here is a diagram of the documentation generation step:
 
 To generate documentation from source code, we will define several object-oriented representations of the individual APIs, examples, tests, and reference documentation. These files are defined in the `/utils` directory.
 
-A third-party API documentation generator is used to generate the API documentation from the extracted source code. Which generator is used depends on the interface. As this implementation is limited to the Claude SDK for Python, the implementation in this repository uses [Sphinx](https://www.sphinx-doc.org/en/master/) to generate the API documentation from the extracted source code.
+A third-party API documentation generator is used to generate the API documentation from the extracted source code. Which generator is used depends on the interface. As this implementation is limited to the Anthropic Python Library, the implementation in this repository uses [Sphinx](https://www.sphinx-doc.org/en/master/) to generate the API documentation from the extracted source code.
 
 We construct LLM prompts to generate example code and unit tests for each API.
 
